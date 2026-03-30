@@ -209,7 +209,7 @@
 
 <script>
   // ==================== YOUR APPS SCRIPT URL ====================
-  const API_URL = "https://script.google.com/macros/s/AKfycbzO8hc4gbhHueAzTyiycobkYf-EjRvWZJrq8nEMS9Rf229nxo0cPUHcyKlgmlo8iARcEg/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycby2arRwTCrjMB29z8MXnuBhzvE0TlY4jaMwnE9M4PLNekr_z5h_-VDtRrCnUGYiiwz1Vg/exec";
 
   let currentUser = null;
   let currentRows = [], currentHeaders = [], emptyCols = [], currentStreams = [];
@@ -219,6 +219,7 @@
     const url = new URL(API_URL);
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
     const response = await fetch(url.toString());
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   }
 
@@ -261,7 +262,7 @@
       } else {
         document.getElementById("loginMsg").innerHTML = `<div class="error">${res.message}</div>`;
       }
-    } catch(err) {
+    } catch (err) {
       document.getElementById("loginMsg").innerHTML = `<div class="error">Error: ${err.message}</div>`;
     }
   }
@@ -285,7 +286,7 @@
       });
       select.value = currentStreamFilter;
       renderTeacherTable();
-    } catch(err) {
+    } catch (err) {
       showMsg("Failed to load data: " + err.message, "teacherMsg", "error");
     }
   }
@@ -333,7 +334,7 @@
     try {
       await callAPI({ action: "updateCell", subject: currentUser.subject, rowIdx, colIdx, value: newValue });
       showMsg("Saved", "teacherMsg", "success");
-    } catch(err) {
+    } catch (err) {
       showMsg("Error saving: " + err.message, "teacherMsg", "error");
     }
   }
@@ -353,7 +354,7 @@
     try {
       await callAPI({ action: "updateCell", subject: currentUser.subject, rowIdx, colIdx, value: newValue });
       showMsg("AoI Saved", "teacherMsg", "success");
-    } catch(err) {
+    } catch (err) {
       showMsg("Error: " + err.message, "teacherMsg", "error");
     }
   }
@@ -364,7 +365,7 @@
         await callAPI({ action: "deleteLearner", subject: currentUser.subject, rowIdx });
         refreshTeacherData();
         showMsg("Learner deleted.", "teacherMsg", "success");
-      } catch(err) {
+      } catch (err) {
         showMsg("Error deleting: " + err.message, "teacherMsg", "error");
       }
     }
@@ -377,7 +378,7 @@
       win.document.write(html);
       win.document.close();
       win.print();
-    } catch(err) {
+    } catch (err) {
       showMsg("Report error: " + err.message, "teacherMsg", "error");
     }
   }
@@ -389,7 +390,7 @@
       const res = await callAPI({ action: "init" });
       showMsg(res.message || "Initialization complete!", "adminMsg", "success");
       loadAdminProgress();
-    } catch(err) {
+    } catch (err) {
       showMsg("Initialization failed: " + err.message, "adminMsg", "error");
     }
   }
@@ -412,7 +413,7 @@
         `;
       }
       document.getElementById("progressList").innerHTML = html;
-    } catch(err) {
+    } catch (err) {
       document.getElementById("adminMsg").innerHTML = `<div class="error">${err.message}</div>`;
     }
   }
@@ -441,7 +442,7 @@
       win.document.write(html);
       win.document.close();
       win.print();
-    } catch(err) {
+    } catch (err) {
       alert("Report error: " + err.message);
     }
   }
@@ -494,7 +495,7 @@
       closeModal();
       showMsg(res.message, "adminMsg", "success");
       if (currentUser.role === "admin") loadAdminProgress();
-    } catch(err) {
+    } catch (err) {
       alert("Error: " + err.message);
     }
   }
@@ -511,7 +512,7 @@
       closeModal();
       showMsg(res.message, "adminMsg", "success");
       loadAdminProgress();
-    } catch(err) {
+    } catch (err) {
       alert("Error: " + err.message);
     }
   }
@@ -527,7 +528,7 @@
     if (modal) modal.remove();
   }
 
-  // Event listeners
+  // Attach event listeners
   document.getElementById("loginBtn").addEventListener("click", doLogin);
   document.getElementById("refreshTeacherBtn")?.addEventListener("click", refreshTeacherData);
   document.getElementById("printReportBtn")?.addEventListener("click", generateReport);
