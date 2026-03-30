@@ -12,7 +12,6 @@
       min-height: 100vh;
       padding: 20px;
     }
-    /* Login card */
     .login-wrapper {
       display: flex;
       justify-content: center;
@@ -54,7 +53,6 @@
     button:active { transform: scale(0.97); }
     .error { background: #ffe6e5; color: #b91c1c; padding: 12px; border-radius: 14px; margin: 12px 0; }
     .success { background: #e0f2e9; color: #1e6f3f; padding: 12px; border-radius: 14px; margin: 12px 0; }
-    /* Dashboard styles */
     .dashboard-container {
       max-width: 1400px;
       margin: 0 auto;
@@ -210,8 +208,8 @@
 </div>
 
 <script>
-  // ==================== CONFIGURATION ====================
-  const API_URL = "YOUR_APPS_SCRIPT_URL"; // <--- REPLACE WITH YOUR ACTUAL URL
+  // ==================== YOUR APPS SCRIPT URL ====================
+  const API_URL = "https://script.google.com/macros/s/AKfycbzO8hc4gbhHueAzTyiycobkYf-EjRvWZJrq8nEMS9Rf229nxo0cPUHcyKlgmlo8iARcEg/exec";
 
   let currentUser = null;
   let currentRows = [], currentHeaders = [], emptyCols = [], currentStreams = [];
