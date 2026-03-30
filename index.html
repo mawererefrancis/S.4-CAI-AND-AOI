@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>RUBONGI SS Score Entry</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .app-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+    }
+    .header h1 { margin: 0 0 5px; font-size: 1.8rem; }
+    .header p { margin: 0; opacity: 0.9; }
+    .content { padding: 25px; }
+    .login-card, .teacher-panel, .admin-panel {
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px);} to { opacity:1; transform:translateY(0);} }
+    input, select, button {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      font-size: 16px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+    button:active { transform: scale(0.98); }
+    .error { background: #fee; color: #c00; padding: 10px; border-radius: 10px; margin: 10px 0; }
+    .success { background: #eaffea; color: #2a6b2a; padding: 10px; border-radius: 10px; margin: 10px 0; }
+    .stream-filter {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+    .stream-filter select { width: auto; min-width: 120px; margin: 0; }
+    .flex-buttons { display: flex; gap: 12px; flex-wrap: wrap; margin: 15px 0; }
+    .flex-buttons button { flex: 1; min-width: 120px; }
+    table { width: 100%; border-collapse: collapse; overflow-x: auto; display: block; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 12px; }
+    th { background: #f1f3f5; position: sticky; top: 0; }
+    .score-input { width: 60px; padding: 6px; text-align: center; font-size: 12px; }
+    .delete-btn { background: #e74c3c; margin-left: 5px; }
+    .subject-card { background: #f8f9fa; border-radius: 16px; padding: 15px; margin-bottom: 15px; }
+    .progress-bar-container { background: #e0e0e0; border-radius: 20px; margin: 10px 0; }
+    .progress-bar { background: linear-gradient(90deg, #667eea, #764ba2); height: 24px; border-radius: 20px; text-align: center; color: white; font-size: 12px; line-height: 24px; }
+    @media (max-width: 768px) {
+      .content { padding: 15px; }
+      .score-input { width: 45px; padding: 4px; }
+      th, td { padding: 4px; font-size: 10px; }
+    }
+    .btn-small { padding: 6px 12px; width: auto; font-size: 12px; }
+    .back-btn { background: #6c757d; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="header">
+    <h1>📚 RUBONGI ARMY SS</h1>
+    <p>S.4 2026 – Score Entry System</p>
+  </div>
+  <div class="content">
+    <!-- Login View -->
+    <div id="loginView">
+      <h3>🔐 Teacher / Admin Login</h3>
+      <input type="text" id="username" placeholder="Username (admin or subject name)" />
+      <input type="password" id="password" placeholder="Password" />
+      <button id="loginBtn">Login</button>
+      <div id="loginMsg"></div>
+      <div style="margin-top: 20px; font-size: 12px; color: #666;">
+        <strong>Demo:</strong> Admin: admin / admin123 | Teacher: Mathematics / mathematics
+      </div>
+    </div>
+
+    <!-- Teacher Panel -->
+    <div id="teacherPanel" style="display:none;">
+      <h3 id="subjectTitle"></h3>
+      <div class="stream-filter">
+        <label>📌 Stream:</label>
+        <select id="streamSelect"></select>
+      </div>
+      <div class="flex-buttons">
+        <button id="refreshTeacherBtn">🔄 Refresh</button>
+        <button id="printReportBtn">📄 Print Report</button>
+      </div>
+      <div id="teacherTable" style="overflow-x: auto;"></div>
+      <div id="teacherMsg"></div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" style="display:none;">
+      <h3>👑 Admin Dashboard</h3>
+      <button id="addLearnerMainBtn">➕ Add Learner (to any subject)</button>
+      <div id="progressList"></div>
+      <div id="adminMsg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ==================== CONFIGURATION ====================
+  // YOUR APPS SCRIPT URL (already inserted)
+  const API_URL = "https://script.google.com/macros/s/AKfycbwxQqcxMHxDeabV5Xg1nfcGnHMimw-z2AzOCYsm7OJHmOX3lOvz-Jwf5Bm8Op8Jbr3--A/exec";
+  
+  let currentUser = null;
+  let currentRows = [], currentHeaders = [], emptyCols = [], currentStreams = [];
+  let currentStreamFilter = "ALL";
+  
+  // Helper: call API
+  async function callAPI(params) {
+    const url = new URL(API_URL);
+    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+    const response = await fetch(url.toString());
+    return await response.json();
+  }
+  
+  function showMsg(text, elementId, type) {
+    const div = document.getElementById(elementId);
+    if (div) div.innerHTML = `<div class="${type}">${text}</div>`;
+    setTimeout(() => { if (div) div.innerHTML = ''; }, 3000);
+  }
+  
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+  
+  // ==================== LOGIN ====================
+  async function doLogin() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+    const res = await callAPI({ action: "login", username, password });
+    if (res.success) {
+      if (res.role === "admin") {
+        currentUser = { role: "admin" };
+        document.getElementById("loginView").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+        loadAdminProgress();
+      } else if (res.role === "teacher") {
+        currentUser = { role: "teacher", subject: res.subject };
+        document.getElementById("loginView").style.display = "none";
+        document.getElementById("teacherPanel").style.display = "block";
+        document.getElementById("subjectTitle").innerHTML = `📖 ${res.subject} – Score Entry`;
+        refreshTeacherData();
+      }
+    } else {
+      document.getElementById("loginMsg").innerHTML = `<div class="error">${res.message}</div>`;
+    }
+  }
+  
+  // ==================== TEACHER FUNCTIONS ====================
+  async function refreshTeacherData() {
+    const data = await callAPI({ action: "loadSubject", subject: currentUser.subject, stream: currentStreamFilter });
+    if (data.error) { showMsg(data.error, "teacherMsg", "error"); return; }
+    currentRows = data.rows;
+    currentHeaders = data.headers;
+    emptyCols = data.emptyCols;
+    currentStreams = data.streams || [];
+    // Populate stream dropdown
+    const select = document.getElementById("streamSelect");
+    select.innerHTML = '<option value="ALL">All Streams</option>';
+    currentStreams.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.text = s;
+      select.appendChild(opt);
+    });
+    select.value = currentStreamFilter;
+    renderTeacherTable();
+  }
+  
+  function changeStream() {
+    currentStreamFilter = document.getElementById("streamSelect").value;
+    refreshTeacherData();
+  }
+  
+  function renderTeacherTable() {
+    if (!currentRows.length) {
+      document.getElementById("teacherTable").innerHTML = "<p>No learners found for this stream.</p>";
+      return;
+    }
+    let visibleIndices = [0,1,2,3];
+    for (let i=4; i<currentHeaders.length-1; i++) {
+      if (!emptyCols.includes(i)) visibleIndices.push(i);
+    }
+    visibleIndices.push(currentHeaders.length-1); // AoI column
+    
+    let html = '<div style="overflow-x: auto;"><table><thead><tr>';
+    for (let idx of visibleIndices) html += `<th>${currentHeaders[idx]}</th>`;
+    html += '<th>Actions</th></tr></thead><tbody>';
+    for (let r=0; r<currentRows.length; r++) {
+      const row = currentRows[r];
+      html += '<tr>';
+      for (let idx of visibleIndices) {
+        const val = row[idx] || "";
+        const isAoI = (currentHeaders[idx] === "AoI Score");
+        if (idx >= 4) {
+          const onchange = isAoI ? `updateAoICell(${r}, ${idx}, this.value)` : `updateScoreCell(${r}, ${idx}, this.value)`;
+          html += `<td><input class="score-input" type="text" value="${escapeHtml(val)}" onchange="${onchange}"></td>`;
+        } else {
+          html += `<td>${escapeHtml(val)}</td>`;
+        }
+      }
+      html += `<td><button class="btn-small delete-btn" onclick="deleteLearner(${r})">🗑 Delete</button></td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    document.getElementById("teacherTable").innerHTML = html;
+  }
+  
+  async function updateScoreCell(rowIdx, colIdx, newValue) {
+    await callAPI({ action: "updateCell", subject: currentUser.subject, rowIdx, colIdx, value: newValue });
+    showMsg("Saved", "teacherMsg", "success");
+  }
+  
+  async function updateAoICell(rowIdx, colIdx, newValue) {
+    const num = parseFloat(newValue);
+    if (isNaN(num)) {
+      showMsg("AoI Score must be a number.", "teacherMsg", "error");
+      refreshTeacherData();
+      return;
+    }
+    if (num < 0.9) {
+      showMsg("AoI Score cannot be below 0.9.", "teacherMsg", "error");
+      refreshTeacherData();
+      return;
+    }
+    await callAPI({ action: "updateCell", subject: currentUser.subject, rowIdx, colIdx, value: newValue });
+    showMsg("AoI Saved", "teacherMsg", "success");
+  }
+  
+  async function deleteLearner(rowIdx) {
+    if (confirm("Delete this learner from this subject only?")) {
+      await callAPI({ action: "deleteLearner", subject: currentUser.subject, rowIdx });
+      refreshTeacherData();
+      showMsg("Learner deleted.", "teacherMsg", "success");
+    }
+  }
+  
+  async function generateReport() {
+    const res = await callAPI({ action: "generateReport", subject: currentUser.subject });
+    const win = window.open();
+    win.document.write(res);
+    win.document.close();
+    win.print();
+  }
+  
+  // ==================== ADMIN FUNCTIONS ====================
+  async function loadAdminProgress() {
+    const progress = await callAPI({ action: "getProgress" });
+    let html = '<h4>📊 Score Entry Progress (including AoI)</h4>';
+    for (let p of progress) {
+      html += `
+        <div class="subject-card">
+          <strong>${p.subject}</strong> (${p.filled}/${p.total} cells)
+          <div class="progress-bar-container"><div class="progress-bar" style="width: ${p.percentage}%;">${p.percentage}%</div></div>
+          <div class="flex-buttons">
+            <button onclick="openSubjectAsTeacher('${p.subject}')">✏️ Edit Scores</button>
+            <button onclick="generateReportForSubject('${p.subject}')">📄 Report</button>
+            <button onclick="showAddLearnerToSubject('${p.subject}')">➕ Add Learner</button>
+          </div>
+        </div>
+      `;
+    }
+    document.getElementById("progressList").innerHTML = html;
+  }
+  
+  async function openSubjectAsTeacher(subject) {
+    currentUser = { role: "teacher", subject: subject };
+    document.getElementById("adminPanel").style.display = "none";
+    document.getElementById("teacherPanel").style.display = "block";
+    document.getElementById("subjectTitle").innerHTML = `📖 ${subject} – Score Entry (Admin Mode)`;
+    currentStreamFilter = "ALL";
+    await refreshTeacherData();
+    // Add back button if not already there
+    let backBtn = document.getElementById("backBtn");
+    if (!backBtn) {
+      backBtn = document.createElement("button");
+      backBtn.id = "backBtn";
+      backBtn.innerText = "← Back to Admin";
+      backBtn.className = "btn-small back-btn";
+      backBtn.onclick = () => location.reload();
+      document.getElementById("teacherPanel").insertBefore(backBtn, document.getElementById("teacherPanel").firstChild);
+    }
+  }
+  
+  async function generateReportForSubject(subject) {
+    const res = await callAPI({ action: "generateReport", subject });
+    const win = window.open();
+    win.document.write(res);
+    win.document.close();
+    win.print();
+  }
+  
+  async function showAddLearnerToSubject(subject) {
+    const streams = ["U","P","D1","D2","F1","F2"];
+    const streamOptions = streams.map(s => `<option>${s}</option>`).join('');
+    const formHtml = `
+      <div id="modal" style="position:fixed; top:20%; left:10%; width:80%; max-width:400px; background:white; border-radius:20px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.2); z-index:1000;">
+        <h4>Add Learner to ${subject}</h4>
+        <input id="newId" placeholder="Learner ID" /><br/>
+        <input id="newName" placeholder="Full Name" /><br/>
+        <input id="newClass" placeholder="Class (S.4)" value="S.4" /><br/>
+        <select id="newStream">${streamOptions}</select><br/><br/>
+        <button onclick="submitAddToSubject('${subject}')">Add</button>
+        <button onclick="closeModal()">Cancel</button>
+      </div>
+    `;
+    showModal(formHtml);
+  }
+  
+  async function showAddLearnerForm() {
+    const subjects = ["English","Mathematics","Physics","Chemistry","Biology","Geography","History & Political Education","Physical Education","CRE","IRE","Entrepreneurship","Kiswahili","Literature in English","Agriculture","ICT","Fine Art","Dhopadhola"];
+    const subjectOptions = subjects.map(s => `<option>${s}</option>`).join('');
+    const streams = ["U","P","D1","D2","F1","F2"];
+    const streamOptions = streams.map(s => `<option>${s}</option>`).join('');
+    const formHtml = `
+      <div id="modal" style="position:fixed; top:10%; left:5%; width:90%; max-width:450px; background:white; border-radius:20px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,0.2); z-index:1000;">
+        <h4>Add Learner to a Subject</h4>
+        <select id="subjectSelect">${subjectOptions}</select><br/>
+        <input id="newId" placeholder="Learner ID" /><br/>
+        <input id="newName" placeholder="Full Name" /><br/>
+        <input id="newClass" placeholder="Class (S.4)" value="S.4" /><br/>
+        <select id="newStream">${streamOptions}</select><br/><br/>
+        <button onclick="submitAddLearner()">Add</button>
+        <button onclick="closeModal()">Cancel</button>
+      </div>
+    `;
+    showModal(formHtml);
+  }
+  
+  async function submitAddToSubject(subject) {
+    const id = document.getElementById("newId").value;
+    const name = document.getElementById("newName").value;
+    const cls = document.getElementById("newClass").value;
+    const stream = document.getElementById("newStream").value;
+    if (!id || !name) { alert("ID and Name required"); return; }
+    const res = await callAPI({ action: "addLearner", subject, learnerId: id, learnerName: name, learnerClass: cls, learnerStream: stream });
+    closeModal();
+    showMsg(res.message, "adminMsg", "success");
+    if (currentUser.role === "admin") loadAdminProgress();
+  }
+  
+  async function submitAddLearner() {
+    const subject = document.getElementById("subjectSelect").value;
+    const id = document.getElementById("newId").value;
+    const name = document.getElementById("newName").value;
+    const cls = document.getElementById("newClass").value;
+    const stream = document.getElementById("newStream").value;
+    if (!id || !name) { alert("ID and Name required"); return; }
+    const res = await callAPI({ action: "addLearner", subject, learnerId: id, learnerName: name, learnerClass: cls, learnerStream: stream });
+    closeModal();
+    showMsg(res.message, "adminMsg", "success");
+    loadAdminProgress();
+  }
+  
+  function showModal(html) {
+    closeModal(); // remove existing
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    document.body.appendChild(div);
+  }
+  function closeModal() {
+    const modal = document.getElementById("modal");
+    if (modal) modal.remove();
+  }
+  
+  // Event listeners
+  document.getElementById("loginBtn").addEventListener("click", doLogin);
+  document.getElementById("refreshTeacherBtn")?.addEventListener("click", refreshTeacherData);
+  document.getElementById("printReportBtn")?.addEventListener("click", generateReport);
+  document.getElementById("addLearnerMainBtn")?.addEventListener("click", showAddLearnerForm);
+  document.getElementById("streamSelect")?.addEventListener("change", changeStream);
+</script>
+</body>
+</html>
